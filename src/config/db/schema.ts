@@ -100,6 +100,8 @@ export const ubicacion_apiario = pgTable('ubicacion_apiario', {
   id_apiario: uuid('id_apiario').references(() => apiario.id),
   locacion: text('locacion').notNull(),
   fecha_registro: timestamp('fecha_registro').defaultNow(),
+  latitud: numeric('latitud', { mode: 'number' }),
+  longitud: numeric('longitud', { mode: 'number' }),
 });
 
 // 🧱 tipo_alerta

@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import {
   createLecturaSensorByCodigo,
+  createUbicacionApiarioByCodigo,
   getLecturasByColmena,
   getLecturasByCodigoDispositivo,
   getUltimaLecturaByColmena,
@@ -86,9 +87,70 @@ export async function createLecturaSensorHandler(req: Request, res: Response) {
   }
 }
 
+export async function createUbicacionApiarioGPSHandler(req: Request, res: Response) {
+  try {
+    const {
+      codigo_dispositivo,
+      latitud,
+      longitud,
+      locacion,
+    } = req.body;
+
+    const codigo = String(codigo_dispositivo || '').trim();
+    const lat = Number(latitud);
+    const lng = Number(longitud);
+
+    if (!codigo) {
+      return res.status(400).json({
+        success: false,
+        error: 'codigo_dispositivo es requerido',
+      });
+    }
+
+    if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
+      return res.status(400).json({
+        success: false,
+        error: 'latitud inválida',
+      });
+    }
+
+    if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
+      return res.status(400).json({
+        success: false,
+        error: 'longitud inválida',
+      });
+    }
+
+    const resultado = await createUbicacionApiarioByCodigo({
+      codigo_dispositivo: codigo,
+      latitud: lat,
+      longitud: lng,
+      locacion: locacion ? String(locacion) : undefined,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: resultado,
+    });
+
+    setImmediate(() => {
+      console.log(`📍 GPS: ${codigo} -> ${lat}, ${lng}`);
+    });
+
+  } catch (error: any) {
+    console.error(`❌ ERROR GPS: ${error.message}`);
+
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Error al guardar ubicación GPS',
+    });
+  }
+}
+
 export async function getLecturasByColmenaHandler(req: AuthRequest, res: Response) {
   try {
-    const { colmenaId } = req.params;
+    const colmenaIdParam = req.params.colmenaId;
+    const colmenaId = Array.isArray(colmenaIdParam) ? colmenaIdParam[0] : colmenaIdParam;
     const { limit } = req.query;
 
     if (!colmenaId || !isValidUUID(colmenaId)) {
@@ -106,7 +168,8 @@ export async function getLecturasByColmenaHandler(req: AuthRequest, res: Respons
 
 export async function getLecturasByDispositivoHandler(req: AuthRequest, res: Response) {
   try {
-    const { codigo } = req.params;
+    const codigoParam = req.params.codigo;
+    const codigo = Array.isArray(codigoParam) ? codigoParam[0] : codigoParam;
     const { limit } = req.query;
 
     if (!codigo) {
@@ -123,7 +186,8 @@ export async function getLecturasByDispositivoHandler(req: AuthRequest, res: Res
 
 export async function getUltimaLecturaColmenaHandler(req: AuthRequest, res: Response) {
   try {
-    const { colmenaId } = req.params;
+    const colmenaIdParam = req.params.colmenaId;
+    const colmenaId = Array.isArray(colmenaIdParam) ? colmenaIdParam[0] : colmenaIdParam;
     if (!colmenaId) {
       return res.status(400).json({ success: false, error: 'colmenaId requerido' });
     }
@@ -140,7 +204,8 @@ export async function getUltimaLecturaColmenaHandler(req: AuthRequest, res: Resp
 
 export async function getHistorialGraficosHandler(req: AuthRequest, res: Response) {
   try {
-    const { colmenaId } = req.params;
+    const colmenaIdParam = req.params.colmenaId;
+    const colmenaId = Array.isArray(colmenaIdParam) ? colmenaIdParam[0] : colmenaIdParam;
     const { dias } = req.query;
 
     if (!colmenaId) {
@@ -163,7 +228,8 @@ export async function getHistorialGraficosHandler(req: AuthRequest, res: Respons
 
 export async function getEstadisticasColmenaHandler(req: AuthRequest, res: Response) {
   try {
-    const { colmenaId } = req.params;
+    const colmenaIdParam = req.params.colmenaId;
+    const colmenaId = Array.isArray(colmenaIdParam) ? colmenaIdParam[0] : colmenaIdParam;
     const { dias } = req.query;
 
     if (!colmenaId) {

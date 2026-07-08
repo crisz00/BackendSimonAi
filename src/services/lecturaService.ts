@@ -1,5 +1,5 @@
 import { db } from '../config/db';
-import { lectura_sensor, historial_lectura_sensor, dispositivo_simonia, colmena } from '../config/db/schema';
+import { lectura_sensor, historial_lectura_sensor, dispositivo_simonia, colmena, ubicacion_apiario } from '../config/db/schema';
 import { eq, desc, gte, sql } from 'drizzle-orm';
 
 export type LecturaInput = {
@@ -11,6 +11,70 @@ export type LecturaInput = {
   presion_hpa?: number;
   fecha_registro?: string; // Para simulaciones históricas
 };
+
+export type UbicacionGPSInput = {
+  codigo_dispositivo: string;
+  latitud: number;
+  longitud: number;
+  locacion?: string;
+};
+
+export async function createUbicacionApiarioByCodigo(payload: UbicacionGPSInput) {
+  const rows = await db
+    .select({
+      dispositivo: dispositivo_simonia,
+      colmena: colmena
+    })
+    .from(dispositivo_simonia)
+    .leftJoin(colmena, eq(colmena.id_dispositivo, dispositivo_simonia.id))
+    .where(eq(dispositivo_simonia.codigo_unico, payload.codigo_dispositivo))
+    .limit(1);
+
+  const row = rows[0];
+
+  if (!row || !row.dispositivo) {
+    throw new Error('Dispositivo no encontrado');
+  }
+
+  if (!row.colmena) {
+    throw new Error('El dispositivo no está asignado a ninguna colmena');
+  }
+
+  if (!row.colmena.id_apiario_actual) {
+    throw new Error('La colmena no tiene apiario asignado');
+  }
+
+  const ubicacionPayload = {
+    id_apiario: row.colmena.id_apiario_actual,
+    locacion: payload.locacion || `GPS ${payload.codigo_dispositivo}`,
+    latitud: payload.latitud,
+    longitud: payload.longitud,
+  };
+
+  const result = await db
+    .insert(ubicacion_apiario)
+    .values(ubicacionPayload)
+    .returning();
+
+  const ubicacionCreada = result[0];
+
+  if (!ubicacionCreada) {
+    throw new Error('Error al guardar la ubicación GPS');
+  }
+
+  return {
+    ubicacion: ubicacionCreada,
+    apiario: { id: row.colmena.id_apiario_actual },
+    colmena: {
+      id: row.colmena.id,
+      nombre_colmena: row.colmena.nombre_colmena
+    },
+    dispositivo: {
+      id: row.dispositivo.id,
+      codigo_unico: row.dispositivo.codigo_unico
+    },
+  };
+}
 
 export async function createLecturaSensorByCodigo(payload: LecturaInput) {
   // 1. Buscar dispositivo y colmena asociada en UNA sola consulta usando JOIN

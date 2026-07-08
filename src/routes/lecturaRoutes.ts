@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   createLecturaSensorHandler,
+  createUbicacionApiarioGPSHandler,
   getLecturasByColmenaHandler,
   getLecturasByDispositivoHandler,
   getUltimaLecturaColmenaHandler,
@@ -96,6 +97,7 @@ router.get('/lecturas/sensor/docs', (_req, res) => {
  *         description: Lectura registrada
  */
 router.post('/lecturas/sensor', iotRateLimiter, createLecturaSensorHandler);
+router.post('/ubicacion/apiario', iotRateLimiter, createUbicacionApiarioGPSHandler);
 
 /**
  * @swagger

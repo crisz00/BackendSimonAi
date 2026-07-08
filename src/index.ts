@@ -100,6 +100,7 @@ app.get('/', (_req, res) => {
 			apiarios: '/api/apiarios',
 			dispositivos: '/api/dispositivos',
 			lecturas: '/api/lecturas/sensor',
+			ubicacion_apiario: '/api/ubicacion/apiario',
 			alertas: '/api/alertas/empresa/todas'
 		}
 	});
